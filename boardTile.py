@@ -73,7 +73,7 @@ class Game:
         
         
     def setTile(self, pos, value): #set the value of a tile on the board
-        if type(value) == type({}): #if the type of the value to set to is a Tile
+        if type(value) == dict: #if the type of the value to set to is a Tile
             self.board[pos[0]][pos[1]] = value
         
         if type(value) == str: #if the type of the value is a string
@@ -83,9 +83,8 @@ class Game:
 
     def copy(self):
         theCopy = Game()
-        for i in range(8):
-            for j in range(8):
-                theCopy.setTile((i, j), self.getTile((i, j)).copy()) 
+
+        theCopy.board = [[tile.copy() for tile in column] for column in self.board]
 
         theCopy.playerToMove = self.playerToMove
         theCopy.scores = self.scores.copy()
