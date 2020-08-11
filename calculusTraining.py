@@ -49,11 +49,14 @@ inputs = network.gameToInput(Game(), 'W')
 
 
 def getChildren(game):
+    """Returns all the possible states reached one move from game."""
     children = []
     for i in range(8):
-        for j in range(8):
-            if game.getTile((i, j))['value'] == game.playerToMove:
-                returnedGames = tryMove((i, j), game)
+        for j in range(8):#for each tile on the board
+            if game.getTile((i, j))['value'] == game.playerToMove: #if the tile's value is the player to move
+
+                returnedGames = tryMove((i, j), game) #find all the possible games reached from this point
+
                 for returnedGame in returnedGames:
                     children.append(returnedGame.game)
     
@@ -61,22 +64,27 @@ def getChildren(game):
 
 
 
-def alphaBeta(game, depth, player, alpha = -math.inf, beta = math.inf, isMaximisingPlayer = True):
+def alphaBeta(game, depth, player, alpha = -math.inf, beta = math.inf):
+    """Returns the minmax value of a game state, using alpha-beta pruning and looking depth nodes ahead.
+
+    player (either 'W' or 'B') - the player that is maximised.
+    """
     if depth == 0 or game.getWinner():
         return heuristicEval(game, player)
     
     if game.playerToMove == player:
         value = -math.inf
         for childGame in getChildren(game):
-            value = max(value, alphaBeta(childGame, depth - 1, player, alpha = alpha, beta = beta, isMaximisingPlayer = False))
+            value = max(value, alphaBeta(childGame, depth - 1, player, alpha = alpha, beta = beta))
             alpha = max(alpha, value)
             if alpha >= beta:
                 break #beta cutoff
         return value
+
     else:
         value = math.inf
         for childGame in getChildren(game):
-            value = min(value, alphaBeta(childGame, depth - 1, player, alpha = alpha, beta = beta, isMaximisingPlayer = True))
+            value = min(value, alphaBeta(childGame, depth - 1, player, alpha = alpha, beta = beta))
             beta = min(beta, value)
             if beta <= alpha:
                 break #alpha cutoff
@@ -194,5 +202,6 @@ def train(network, maxGameLength, learningRate, heuristic = True):
              
 
 if __name__ == '__main__':
-    cProfile.run('train(Network([144, 20, 20, 1]), 100, 0.1)')
+    #cProfile.run('train(Network([144, 20, 20, 1]), 100, 0.1)')
+    train(Network([144, 20, 20, 1]), 100, 0.1)
     

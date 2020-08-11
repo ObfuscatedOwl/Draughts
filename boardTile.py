@@ -82,7 +82,7 @@ class Game:
 
 
     def copy(self):
-        theCopy = Game()
+        theCopy = copy.copy(self)
 
         theCopy.board = [[tile.copy() for tile in column] for column in self.board]
 
