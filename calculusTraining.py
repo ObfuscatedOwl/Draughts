@@ -93,14 +93,16 @@ def alphaBeta(game, depth, player, alpha = -math.inf, beta = math.inf):
 
 
 def sumValues(game):
-    #counts all of the values of the different pieces on the board
-    #kings have value 2, men 1
-    #returns a dictionary of the values of white, black
+    """counts all of the values of the different pieces on game.board
+
+    kings have value 2, men 1
+    returns a dictionary of the values of white, black"""
     sums = {'W' : 0, 'B' : 0}
+
     for i in range(8):
-        for j in range(8):
+        for j in range(8): #for each tile on the board
             tile = game.getTile((i, j))
-            if tile['value'] in ('W', 'B'):
+            if tile['value'] in ('W', 'B'): #if the tile is not empty
                 if not tile['king']:
                     sums[tile['value']] += 1
 
@@ -117,10 +119,11 @@ def sigmoid(x):
 
 
 def heuristicEval(game, perspective):
-    #a heuristic evaluation of game
-    #perspective is the perspective of the ai,
-    #i.e. if white has won and perspective == 'W'
-    #the output will be 1.
+    """A heuristic evaluation of game based on the number of different pieces.
+
+    Perspective is the player with the perspective of this evaluation,
+    i.e. if white has won and perspective == 'W'
+    the output will be 1."""
     if (winner := game.getWinner()):
         if winner == perspective:
             return 1.
@@ -136,12 +139,15 @@ def heuristicEval(game, perspective):
 
 
 def getMinMaxMove(game, depth):
+    """Returns the move chosen by the alphabeta function at a certain depth."""
+
     possibleGames = [{'game' : possibleGame, 'value' : 0} for possibleGame in getChildren(game)]
     for possibleGame in possibleGames:
         possibleGame['value'] = alphaBeta(possibleGame['game'], depth, game.playerToMove)
     
     valueLambda = lambda x : x['value']
     random.shuffle(possibleGames)
+
     return max(possibleGames, key = valueLambda)['game']
 
 
@@ -155,6 +161,7 @@ def updateLine(fig, line, xData, yData):
 
 
 def train(network, maxGameLength, learningRate, heuristic = True):
+    """Trains a network."""
     # plt.ion()
     # fig = plt.figure()
     # ax = fig.add_subplot(111)
@@ -163,7 +170,7 @@ def train(network, maxGameLength, learningRate, heuristic = True):
     costData = [[], []]
     xPoint = 0
 
-    for i in range(1):
+    while True:
         game = Game()
         #loops through games
         while game.length < maxGameLength:
@@ -179,15 +186,19 @@ def train(network, maxGameLength, learningRate, heuristic = True):
             costL = []
 
             for possibleGame in possibleGames:
-                minmaxEval = alphaBeta(possibleGame, 2, game.playerToMove)
-                netInput = network.gameToInput(game, game.playerToMove)
-                nabla_b, nabla_w, output = network.backprop(netInput, minmaxEval)
-                netOutputs.append({'game' : possibleGame, 'netValue' : output})
+                minmaxEval = alphaBeta(possibleGame, 2, game.playerToMove) #get the heuristic minmax value
+
+                netInput = network.gameToInput(game, game.playerToMove) #generate the input to the network
+                nabla_b, nabla_w, output = network.backprop(netInput, minmaxEval) #get the derivitives of C with respect to w and b
+
+                netOutputs.append({'game' : possibleGame, 'netValue' : output}) #record the output of the net
+
                 nabla_bL.append(nabla_b)
                 nabla_wL.append(nabla_w)
                 costL.append(((minmaxEval - output[0]) ** 2)[0])
 
-            network.updateWB(nabla_bL, nabla_wL, learningRate)
+            network.updateWB(nabla_bL, nabla_wL, learningRate) #update the weights and biases of the network
+
             averageCost = sum(costL) / len(costL)
             costData[0].append(xPoint)
             xPoint += 1
@@ -197,7 +208,7 @@ def train(network, maxGameLength, learningRate, heuristic = True):
 
             valueLambda = lambda x : x['netValue']
             random.shuffle(netOutputs)
-            game = max(netOutputs, key = valueLambda)['game']
+            game = max(netOutputs, key = valueLambda)['game'] #set the game the net chooses as the next one
 
              
 
