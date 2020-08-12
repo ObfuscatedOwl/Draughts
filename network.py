@@ -10,11 +10,19 @@ def sigmoid_prime(x):
 
 
 class Network:
-    def __init__(self, layerSizes):
-        self.weights = [np.random.standard_normal(s) / math.sqrt(s[1]) for s in zip(layerSizes[1:], layerSizes[:-1])]
-        self.biases = [np.zeros([s, 1]) for s in layerSizes[1:]]
-        self.numLayers = len(layerSizes)
-        self.layerSizes = layerSizes
+    def __init__(self, layerSizes, path = False):
+
+        if not path:
+            self.weights = [np.random.standard_normal(s) / math.sqrt(s[1]) for s in zip(layerSizes[1:], layerSizes[:-1])]
+            self.biases = [np.zeros([s, 1]) for s in layerSizes[1:]]
+            self.numLayers = len(layerSizes)
+            self.layerSizes = layerSizes
+
+        elif path:
+            self.weights = np.load(path + '\\weights.npy', allow_pickle= True)
+            self.biases = np.load(path + '\\biases.npy', allow_pickle= True)
+            self.layerSizes = list(np.load(path + '\\layerSizes.npy', allow_pickle= True))
+            self.numLayers = len(self.layerSizes)
 
 
     def cost_derivitive(self, output_activations, y):
@@ -120,6 +128,13 @@ class Network:
                         for w, nw in zip(self.weights, nabla_w)]
         self.biases = [b-(eta/len(nabla_bL))*nb 
                        for b, nb in zip(self.biases, nabla_b)]
+
+    
+
+    def save(self, path):
+        np.save(path + '\\weights.npy', self.weights)
+        np.save(path + '\\biases.npy', self.biases)
+        np.save(path + '\\layerSizes.npy', self.layerSizes)
 
                     
                     

@@ -1,0 +1,39 @@
+#so what this script needs to do
+#so i need to begin training the ai with heuristics
+#no, first i need to create it and implement the inputs to the ai
+
+#i should use a slot based system for the inputs (controlled kings [12], controlled men[12], enemy kings[12], enemy men[12])
+#this means that there will be 48 input slots in total
+#in each slot, there will be three neurons, whether the piece is present, a normalised x coordinate (x / 7), and a normalised y coordinate (y / 7)
+
+#network = Network([48 * 3, 20, 20, 1])
+#inputs = network.gameToInput(Game(), 'W')
+#print(inputs)
+
+
+#ok inputs are done
+#now........
+#heuristic evaluation of the chance of winning
+#i want this to be a probablility based thing
+#so first check if the board is in a win or loss state
+#and if so set it to 1. or 0. respectively
+#otherwise do some sort of evaluation to get the chance
+#if there's the same number of kings and men on each side
+#the value should be 0.5
+#it should tend to 1. or 0. if either side has a significant number more pieces
+#lol let's do this with the sigmoid function i'm not feeling very creative
+#ok
+#add up all of the values of the pieces on each side, men are 1, kings are 2, and enemies are negative
+#then put it through the sigmoid to get the desired output
+#cool
+#then use alpha-beta pruning to determine what the evaluation should be
+#use tree of depth... 3 or 4 idk
+#actually i can probably get away with higher for drafts
+#i should test
+
+
+#ok!
+#the heuristics with alphabeta is DONE!
+#now
+#training against the minmax
+#then training against itself minmaxed

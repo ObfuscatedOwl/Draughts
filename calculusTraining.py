@@ -6,46 +6,8 @@ import random
 #import matplotlib.pyplot as plt
 import numpy as np
 import cProfile
+import os
 
-#so what this script needs to do
-#so i need to begin training the ai with heuristics
-#no, first i need to create it and implement the inputs to the ai
-
-#i should use a slot based system for the inputs (controlled kings [12], controlled men[12], enemy kings[12], enemy men[12])
-#this means that there will be 48 input slots in total
-#in each slot, there will be three neurons, whether the piece is present, a normalised x coordinate (x / 7), and a normalised y coordinate (y / 7)
-
-network = Network([48 * 3, 20, 20, 1])
-inputs = network.gameToInput(Game(), 'W')
-#print(inputs)
-
-
-#ok inputs are done
-#now........
-#heuristic evaluation of the chance of winning
-#i want this to be a probablility based thing
-#so first check if the board is in a win or loss state
-#and if so set it to 1. or 0. respectively
-#otherwise do some sort of evaluation to get the chance
-#if there's the same number of kings and men on each side
-#the value should be 0.5
-#it should tend to 1. or 0. if either side has a significant number more pieces
-#lol let's do this with the sigmoid function i'm not feeling very creative
-#ok
-#add up all of the values of the pieces on each side, men are 1, kings are 2, and enemies are negative
-#then put it through the sigmoid to get the desired output
-#cool
-#then use alpha-beta pruning to determine what the evaluation should be
-#use tree of depth... 3 or 4 idk
-#actually i can probably get away with higher for drafts
-#i should test
-
-
-#ok!
-#the heuristics with alphabeta is DONE!
-#now
-#training against the minmax
-#then training against itself minmaxed
 
 
 def getChildren(game):
@@ -174,10 +136,12 @@ def train(network, maxGameLength, learningRate, heuristic = True):
         game = Game()
         #loops through games
         while game.length < maxGameLength:
-            #print(game)
             possibleGames = getChildren(game)
 
             if len(possibleGames) == 0:
+                print("Game finished, no possible moves.")
+                print(game)
+                print('---------------------------------')
                 break
 
             netOutputs = []
@@ -186,7 +150,7 @@ def train(network, maxGameLength, learningRate, heuristic = True):
             costL = []
 
             for possibleGame in possibleGames:
-                minmaxEval = alphaBeta(possibleGame, 2, game.playerToMove) #get the heuristic minmax value
+                minmaxEval = max(0, alphaBeta(possibleGame, 2, game.playerToMove)) #get the heuristic minmax value
 
                 netInput = network.gameToInput(game, game.playerToMove) #generate the input to the network
                 nabla_b, nabla_w, output = network.backprop(netInput, minmaxEval) #get the derivitives of C with respect to w and b
@@ -195,7 +159,12 @@ def train(network, maxGameLength, learningRate, heuristic = True):
 
                 nabla_bL.append(nabla_b)
                 nabla_wL.append(nabla_w)
-                costL.append(((minmaxEval - output[0]) ** 2)[0])
+                cost = ((minmaxEval - output[0]) ** 2)[0]
+                costL.append(cost)
+                if cost == np.inf or cost == np.nan:
+                    print(f"minmaxEval : {minmaxEval}")
+                    print(f"output : {output[0]}")
+
 
             network.updateWB(nabla_bL, nabla_wL, learningRate) #update the weights and biases of the network
 
@@ -203,16 +172,36 @@ def train(network, maxGameLength, learningRate, heuristic = True):
             costData[0].append(xPoint)
             xPoint += 1
             costData[1].append(averageCost)
-            print(costData[1][-1])
+            print(averageCost)
+            if averageCost == np.inf or averageCost == np.nan:
+                print('Inf or Nan value encountered.')
+                print(f'costL = {costL}')
+
             #updateLine(fig, line1, costData[0], costData[1])
 
             valueLambda = lambda x : x['netValue']
             random.shuffle(netOutputs)
             game = max(netOutputs, key = valueLambda)['game'] #set the game the net chooses as the next one
 
+
+        network.save(os.getcwd())
+
              
 
 if __name__ == '__main__':
+    network = False
+    while not network:
+        userInput = input('Load saved network? (y/n): ')
+
+        if userInput == 'y':
+            network = Network([144, 20, 20, 1], path = os.getcwd())
+
+        elif userInput == 'n':
+            network = Network([144, 20, 20, 1])
+
+        else:
+            print('Invalid input.')
+        
     #cProfile.run('train(Network([144, 20, 20, 1]), 100, 0.1)')
-    train(Network([144, 20, 20, 1]), 100, 0.1)
+    train(network, 100, 0.1)
     
