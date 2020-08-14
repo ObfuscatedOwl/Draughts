@@ -1,8 +1,13 @@
 import pgzrun
 from boardTile import Game
 from move import tryMove
-from calculusTraining import alphaBeta, getMinMaxMove
+from calculusTraining import alphaBeta, getMinMaxMove, getChildren
 from renderBoard import renderBoard
+from network import Network
+import os
+import random
+
+
 
 WIDTH = 600
 HEIGHT = 600
@@ -20,9 +25,25 @@ posSelected = False
 selectedPos = 0,0
 possibleMoves = []
 
+heuristic = False
+
+if not heuristic:
+    network = Network([144, 20, 20, 1], path = os.getcwd())
+
 
 def playAiMove(game):
-    return getMinMaxMove(game, 2)
+    if heuristic:
+        return getMinMaxMove(game, 2)
+    else:
+        gameValues = []
+        for possibleGame in getChildren(game):
+            gameValues.append({'game' : possibleGame, 'value' : network.evalGame(game, game.playerToMove)})
+
+        valueLambda = lambda x : x['value']
+        random.shuffle(gameValues)
+
+        return max(gameValues, key = valueLambda)['game']
+
 
 
 
@@ -64,8 +85,6 @@ def on_mouse_down(pos, button):
                 
                 
 
-    
-
 def draw ():
     
     renderBoard(screen, theGame, WIDTH, HEIGHT, Rect, posSelected, selectedPos, possibleMoves)
@@ -74,6 +93,6 @@ def draw ():
 
 theGame = Game()
 
-
+theGame = playAiMove(theGame)
 
 pgzrun.go()

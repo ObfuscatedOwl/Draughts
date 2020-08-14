@@ -136,6 +136,16 @@ class Network:
         np.save(path + '\\biases.npy', self.biases)
         np.save(path + '\\layerSizes.npy', self.layerSizes)
 
+
+    def evalGame(self, game, player):
+        winner = game.getWinner()
+        if winner == player: #if player has won
+            return 1.
+        elif not winner == False: #if there is a winner who is not player
+            return 0.
+        else:
+            inputs = self.gameToInput(game, player)
+            return float(self.getOutput(inputs))
                     
                     
 if __name__ == '__main__':

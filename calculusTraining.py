@@ -7,6 +7,7 @@ import random
 import numpy as np
 import cProfile
 import os
+import sys
 
 
 
@@ -26,18 +27,38 @@ def getChildren(game):
 
 
 
-def alphaBeta(game, depth, player, alpha = -math.inf, beta = math.inf):
+def heuristicEval(game, perspective):
+    """A heuristic evaluation of game based on the number of different pieces.
+
+    Perspective is the player with the perspective of this evaluation,
+    i.e. if white has won and perspective == 'W'
+    the output will be 1."""
+    if (winner := game.getWinner()):
+        if winner == perspective:
+            return 1.
+        else:
+            return 0.
+
+    else:
+        sums = sumValues(game)
+        oppositePlayer = {'W' : 'B', 'B' : 'W'}[perspective]
+        sumValue = sums[perspective] - sums[oppositePlayer]
+        return sigmoid(sumValue)
+
+
+
+def alphaBeta(game, depth, player, alpha = -math.inf, beta = math.inf, evalFunc = heuristicEval):
     """Returns the minmax value of a game state, using alpha-beta pruning and looking depth nodes ahead.
 
     player (either 'W' or 'B') - the player that is maximised.
     """
     if depth == 0 or game.getWinner():
-        return heuristicEval(game, player)
+        return evalFunc(game, player)
     
     if game.playerToMove == player:
         value = -math.inf
         for childGame in getChildren(game):
-            value = max(value, alphaBeta(childGame, depth - 1, player, alpha = alpha, beta = beta))
+            value = max(value, alphaBeta(childGame, depth - 1, player, alpha = alpha, beta = beta, evalFunc = evalFunc))
             alpha = max(alpha, value)
             if alpha >= beta:
                 break #beta cutoff
@@ -46,7 +67,7 @@ def alphaBeta(game, depth, player, alpha = -math.inf, beta = math.inf):
     else:
         value = math.inf
         for childGame in getChildren(game):
-            value = min(value, alphaBeta(childGame, depth - 1, player, alpha = alpha, beta = beta))
+            value = min(value, alphaBeta(childGame, depth - 1, player, alpha = alpha, beta = beta, evalFunc = evalFunc))
             beta = min(beta, value)
             if beta <= alpha:
                 break #alpha cutoff
@@ -80,26 +101,6 @@ def sigmoid(x):
 
 
 
-def heuristicEval(game, perspective):
-    """A heuristic evaluation of game based on the number of different pieces.
-
-    Perspective is the player with the perspective of this evaluation,
-    i.e. if white has won and perspective == 'W'
-    the output will be 1."""
-    if (winner := game.getWinner()):
-        if winner == perspective:
-            return 1.
-        else:
-            return 0.
-
-    else:
-        sums = sumValues(game)
-        oppositePlayer = {'W' : 'B', 'B' : 'W'}[perspective]
-        sumValue = sums[perspective] - sums[oppositePlayer]
-        return sigmoid(sumValue)
-
-
-
 def getMinMaxMove(game, depth):
     """Returns the move chosen by the alphabeta function at a certain depth."""
 
@@ -124,6 +125,10 @@ def updateLine(fig, line, xData, yData):
 
 def train(network, maxGameLength, learningRate, heuristic = True):
     """Trains a network."""
+    if heuristic:
+        evalFunc = heuristicEval
+    else:
+        evalFunc = network.evalGame
     # plt.ion()
     # fig = plt.figure()
     # ax = fig.add_subplot(111)
@@ -150,19 +155,20 @@ def train(network, maxGameLength, learningRate, heuristic = True):
             costL = []
 
             for possibleGame in possibleGames:
-                minmaxEval = max(0, alphaBeta(possibleGame, 2, game.playerToMove)) #get the heuristic minmax value
+                minmaxEval = alphaBeta(possibleGame, 2, game.playerToMove, evalFunc = evalFunc) #get the heuristic minmax value
+                desiredOutput = min(1, max(0, minmaxEval))
 
                 netInput = network.gameToInput(game, game.playerToMove) #generate the input to the network
-                nabla_b, nabla_w, output = network.backprop(netInput, minmaxEval) #get the derivitives of C with respect to w and b
+                nabla_b, nabla_w, output = network.backprop(netInput, desiredOutput) #get the derivitives of C with respect to w and b
 
                 netOutputs.append({'game' : possibleGame, 'netValue' : output}) #record the output of the net
 
                 nabla_bL.append(nabla_b)
                 nabla_wL.append(nabla_w)
-                cost = ((minmaxEval - output[0]) ** 2)[0]
+                cost = ((desiredOutput - output[0]) ** 2)[0]
                 costL.append(cost)
                 if cost == np.inf or cost == np.nan:
-                    print(f"minmaxEval : {minmaxEval}")
+                    print(f"desiredOutput : {desiredOutput}")
                     print(f"output : {output[0]}")
 
 
@@ -173,9 +179,10 @@ def train(network, maxGameLength, learningRate, heuristic = True):
             xPoint += 1
             costData[1].append(averageCost)
             print(averageCost)
-            if averageCost == np.inf or averageCost == np.nan:
+            if averageCost == np.inf or averageCost == np.nan or averageCost == -np.inf:
                 print('Inf or Nan value encountered.')
                 print(f'costL = {costL}')
+                sys.exit()
 
             #updateLine(fig, line1, costData[0], costData[1])
 
@@ -189,8 +196,8 @@ def train(network, maxGameLength, learningRate, heuristic = True):
              
 
 if __name__ == '__main__':
-    network = False
-    while not network:
+    network = None
+    while network == None:
         userInput = input('Load saved network? (y/n): ')
 
         if userInput == 'y':
@@ -202,6 +209,18 @@ if __name__ == '__main__':
         else:
             print('Invalid input.')
         
+    heuristic = None
+    while heuristic == None:
+        userInput = input('Train with heuristics or not? (y/n): ')
+        
+        if userInput == 'y':
+            heuristic = True
+
+        elif userInput == 'n':
+            heuristic = False
+
+        else:
+            print('Invalid input.')
     #cProfile.run('train(Network([144, 20, 20, 1]), 100, 0.1)')
-    train(network, 100, 0.1)
+    train(network, 100, 0.1, heuristic = heuristic)
     
